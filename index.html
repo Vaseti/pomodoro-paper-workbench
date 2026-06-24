@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <title>番茄工作台</title>
+    <link rel="stylesheet" href="./styles.css?v=20260624-daily-records">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Pomodoro Workbench</p>
+          <h1>番茄工作台</h1>
+        </div>
+        <div class="app-header-meta">
+          <span>活动清单</span>
+          <span>今日计划</span>
+          <span>记录复盘</span>
+        </div>
+      </header>
+
+      <section class="panel inventory-panel" aria-labelledby="inventory-title">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Inventory</p>
+            <h2 id="inventory-title">活动清单</h2>
+          </div>
+        </div>
+        <form class="entry-form" data-form="activity">
+          <textarea id="activity-input" rows="4" placeholder="像记事本一样写活动，一行一个"></textarea>
+          <button type="submit">添加</button>
+        </form>
+        <div id="activity-list" class="item-list"></div>
+      </section>
+
+      <section class="panel focus-panel" aria-label="番茄钟和今日待办">
+        <section class="timer-surface" aria-labelledby="timer-title">
+          <div class="timer-topline">
+            <div>
+              <p class="eyebrow">Timer</p>
+              <h2 id="timer-title">番茄钟</h2>
+            </div>
+            <div id="phase-label" class="phase-pill">工作</div>
+          </div>
+
+          <div id="timer-display" class="timer-display">25:00</div>
+
+          <div id="current-task" class="current-task">未选中任务</div>
+
+          <div class="settings-row">
+            <label>
+              工作
+              <input id="work-minutes" type="number" min="1" max="180" step="1">
+            </label>
+            <label>
+              休息
+              <input id="break-minutes" type="number" min="1" max="180" step="1">
+            </label>
+          </div>
+
+          <div class="timer-controls">
+            <button id="start-pause" type="button">开始</button>
+            <button id="reset-timer" type="button">重置</button>
+          </div>
+        </section>
+
+        <section class="today-board" aria-labelledby="today-title">
+          <div class="board-header">
+            <div>
+              <p class="eyebrow">Today</p>
+              <h2 id="today-title">今日待办</h2>
+            </div>
+          </div>
+
+          <div id="selected-task-tools" class="selected-tools"></div>
+
+          <div class="todo-section" data-section="planned">
+            <div class="section-title">
+              <h3>计划区</h3>
+            </div>
+            <form class="entry-form compact" data-form="planned">
+              <textarea id="planned-input" rows="3" placeholder="像记事本一样写计划，一行一个待办"></textarea>
+              <button type="submit">添加</button>
+            </form>
+            <div id="planned-list" class="task-list"></div>
+          </div>
+
+          <div class="todo-section urgent" data-section="urgent">
+            <div class="section-title">
+              <h3>计划外紧急区</h3>
+            </div>
+            <form class="entry-form urgent-entry" data-form="urgent">
+              <textarea id="urgent-input" rows="4" placeholder="一行一个计划外紧急事项"></textarea>
+              <button type="submit">添加</button>
+            </form>
+            <div id="urgent-list" class="task-list"></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel log-panel" aria-labelledby="log-title">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Log</p>
+            <h2 id="log-title">记录</h2>
+          </div>
+        </div>
+        <div id="log-list" class="log-list"></div>
+      </section>
+    </main>
+
+    <section id="focus-mode" class="focus-mode sidebar-collapsed" aria-hidden="true">
+      <div class="focus-stage">
+        <p id="focus-phase" class="focus-phase">工作</p>
+        <div id="focus-display" class="focus-display">25:00</div>
+        <div id="focus-task-name" class="focus-task-name">未选中任务</div>
+        <div id="focus-status" class="focus-status">专注中</div>
+        <div class="focus-controls">
+          <button id="focus-pause" type="button">暂停</button>
+          <button id="focus-exit" type="button">退出专注</button>
+        </div>
+      </div>
+      <button
+        id="focus-sidebar-toggle"
+        class="focus-sidebar-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="focus-sidebar-panel"
+      >
+        工具
+      </button>
+      <aside id="focus-sidebar-panel" class="focus-interruptions" aria-label="专注工具">
+        <div class="focus-style-panel" aria-label="专注界面样式">
+          <label>
+            背景
+            <select id="focus-bg-select">
+              <option value="midnight">深夜</option>
+              <option value="paper">纸面</option>
+              <option value="forest">森林</option>
+              <option value="dawn">晨光</option>
+            </select>
+          </label>
+          <label>
+            时钟
+            <select id="focus-clock-select">
+              <option value="classic">经典</option>
+              <option value="mono">数字</option>
+              <option value="soft">柔和</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="focus-interrupt-card">
+          <div>
+            <span>'</span>
+            <strong id="focus-internal-count">0</strong>
+            内部打断
+          </div>
+          <button id="focus-internal" type="button">添加</button>
+          <button id="focus-internal-undo" type="button">删除一次</button>
+        </div>
+        <div class="focus-interrupt-card">
+          <div>
+            <span>-</span>
+            <strong id="focus-external-count">0</strong>
+            外部打断
+          </div>
+          <button id="focus-external" type="button">添加</button>
+          <button id="focus-external-undo" type="button">删除一次</button>
+        </div>
+        <form class="focus-urgent-card" data-form="focus-urgent">
+          <label for="focus-urgent-input">计划外紧急</label>
+          <textarea id="focus-urgent-input" rows="4" placeholder="记录临时冒出来的紧急任务"></textarea>
+          <button type="submit">添加到紧急区</button>
+        </form>
+      </aside>
+    </section>
+
+    <script type="module" src="./src/app.js?v=20260624-daily-records"></script>
+  </body>
+</html>

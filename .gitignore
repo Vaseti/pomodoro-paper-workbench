@@ -1,0 +1,14 @@
+.superpowers/
+docs/superpowers/
+
+node_modules/
+dist/
+build/
+
+.DS_Store
+Thumbs.db
+
+*.log
+*.tmp
+*.zip
+.github-package/
