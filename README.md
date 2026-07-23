@@ -55,6 +55,8 @@ python -m http.server 4173 --bind 127.0.0.1
 http://localhost:4173/index.html?fresh=20260624-daily-records
 ```
 
+网页标签页和桌面版快捷方式使用 `assets/pomodoro-icon.svg` / `assets/pomodoro-icon.ico` 番茄钟图标。更新代码后重新运行 `desktop/install.ps1`，即可刷新桌面快捷方式图标。
+
 ## 数据保存
 
 这个项目是 local-first 的小工具。你的活动清单、今日待办、记录和总结都保存在当前浏览器的 `localStorage` 中。

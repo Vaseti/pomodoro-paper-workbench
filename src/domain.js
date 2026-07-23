@@ -16,6 +16,30 @@ const INTERRUPT_LABELS = {
 
 const ESTIMATE_TYPES = ['square', 'circle', 'triangle'];
 
+export const MIN_TIMER_MINUTES = 1;
+export const MAX_TIMER_MINUTES = 180;
+
+function isObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function safeString(value, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function safeTimerMinutes(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    && number >= MIN_TIMER_MINUTES
+    && number <= MAX_TIMER_MINUTES
+    ? number
+    : fallback;
+}
+
 function makeId(prefix) {
   if (globalThis.crypto?.randomUUID) {
     return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -69,37 +93,60 @@ function createLog(text) {
 
 function normalizeTask(task) {
   return {
-    id: task.id ?? makeId('task'),
-    text: task.text ?? '',
-    markers: (task.markers ?? []).map((marker) => ({
-      id: marker.id ?? makeId('marker'),
-      type: marker.type,
-      symbol: marker.symbol ?? MARKER_SYMBOLS[marker.type],
-      checked: Boolean(marker.checked),
-    })),
-    interruptions: (task.interruptions ?? []).map((interrupt) => ({
-      id: interrupt.id ?? makeId('interrupt'),
-      type: interrupt.type,
-      symbol: interrupt.symbol ?? INTERRUPT_SYMBOLS[interrupt.type],
-    })),
+    id: safeString(task.id, makeId('task')),
+    text: safeString(task.text),
+    markers: safeArray(task.markers).filter(isObject).map((marker) => {
+      const type = safeString(marker.type);
+      return {
+        id: safeString(marker.id, makeId('marker')),
+        type,
+        symbol: safeString(marker.symbol, MARKER_SYMBOLS[type] ?? ''),
+        checked: Boolean(marker.checked),
+      };
+    }),
+    interruptions: safeArray(task.interruptions).filter(isObject).map((interrupt) => {
+      const type = safeString(interrupt.type);
+      return {
+        id: safeString(interrupt.id, makeId('interrupt')),
+        type,
+        symbol: safeString(interrupt.symbol, INTERRUPT_SYMBOLS[type] ?? ''),
+      };
+    }),
     pomodoros: Number(task.pomodoros) || 0,
     done: Boolean(task.done),
   };
 }
 
 function normalizeToday(today = {}) {
+  const source = isObject(today) ? today : {};
   return {
-    planned: (today.planned ?? []).map(normalizeTask),
-    urgent: (today.urgent ?? []).map(normalizeTask),
+    planned: safeArray(source.planned).filter(isObject).map(normalizeTask),
+    urgent: safeArray(source.urgent).filter(isObject).map(normalizeTask),
   };
 }
 
 function normalizeDailyRecord(record) {
+  const source = isObject(record) ? record : {};
   return {
-    date: record.date ?? todayKey(),
-    today: normalizeToday(record.today),
-    logs: record.logs ?? [],
-    summary: record.summary ?? '',
+    date: safeString(source.date, todayKey()),
+    today: normalizeToday(source.today),
+    logs: safeArray(source.logs).filter(isObject).map(normalizeLog),
+    summary: safeString(source.summary),
+  };
+}
+
+function normalizeActivity(activity) {
+  return {
+    id: safeString(activity.id, makeId('activity')),
+    text: safeString(activity.text),
+  };
+}
+
+function normalizeLog(log) {
+  return {
+    id: safeString(log.id, makeId('log')),
+    text: safeString(log.text),
+    createdAt: safeString(log.createdAt),
   };
 }
 
@@ -260,20 +307,26 @@ export function createInitialState(currentDate = todayKey()) {
 
 export function normalizeState(savedState, currentDate = todayKey()) {
   const initial = createInitialState(currentDate);
-  const savedCurrentDate = savedState?.currentDate ?? savedState?.date ?? currentDate;
+  const source = isObject(savedState) ? savedState : {};
+  const settings = isObject(source.settings) ? source.settings : {};
+  const savedCurrentDate = safeString(source.currentDate, safeString(source.date, currentDate));
   const draft = {
     ...initial,
-    ...savedState,
+    ...source,
     currentDate: savedCurrentDate,
     settings: {
       ...initial.settings,
-      ...(savedState?.settings ?? {}),
+      ...settings,
+      workMinutes: safeTimerMinutes(settings.workMinutes, initial.settings.workMinutes),
+      breakMinutes: safeTimerMinutes(settings.breakMinutes, initial.settings.breakMinutes),
+      focusBackground: safeString(settings.focusBackground, initial.settings.focusBackground),
+      focusClock: safeString(settings.focusClock, initial.settings.focusClock),
     },
-    today: normalizeToday(savedState?.today),
-    activities: savedState?.activities ?? [],
-    logs: savedState?.logs ?? [],
-    dailySummary: savedState?.dailySummary ?? savedState?.summary ?? '',
-    records: (savedState?.records ?? savedState?.dailyRecords ?? []).map(normalizeDailyRecord),
+    today: normalizeToday(source.today),
+    activities: safeArray(source.activities).filter(isObject).map(normalizeActivity),
+    logs: safeArray(source.logs).filter(isObject).map(normalizeLog),
+    dailySummary: safeString(source.dailySummary, safeString(source.summary)),
+    records: safeArray(source.records ?? source.dailyRecords).filter(isObject).map(normalizeDailyRecord),
   };
 
   return draft;

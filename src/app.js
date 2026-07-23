@@ -28,6 +28,11 @@ import {
   phaseSeconds,
   transitionAfterCompletedPhase,
 } from './timer.js?v=20260624-daily-records';
+import {
+  MAX_IMPORT_BYTES,
+  parseStateImport,
+  serializeStateExport,
+} from './state-transfer.js?v=20260723-desktop';
 
 const refs = {
   activityInput: document.querySelector('#activity-input'),
@@ -63,6 +68,11 @@ const refs = {
   focusUrgentInput: document.querySelector('#focus-urgent-input'),
   focusBgSelect: document.querySelector('#focus-bg-select'),
   focusClockSelect: document.querySelector('#focus-clock-select'),
+  exportData: document.querySelector('#export-data'),
+  importData: document.querySelector('#import-data'),
+  undoImport: document.querySelector('#undo-import'),
+  importFile: document.querySelector('#import-file'),
+  dataMessage: document.querySelector('#data-message'),
 };
 
 let state = rollToDate(normalizeState(loadState() ?? createInitialState()));
@@ -80,6 +90,7 @@ let focusSession = {
 };
 let focusSidebarOpen = false;
 let audioContext = null;
+let preImportState = null;
 
 function ensureAudioContext() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
@@ -89,8 +100,9 @@ function ensureAudioContext() {
 }
 
 function commit(nextState) {
-  state = rollToDate(normalizeState(nextState));
-  saveState(state);
+  const committedState = rollToDate(normalizeState(nextState));
+  saveState(committedState);
+  state = committedState;
   render();
 }
 
@@ -302,13 +314,17 @@ function pauseTimer() {
   }
 }
 
-function resetTimer() {
+function synchronizeRuntimeAfterStateReplacement() {
   pauseTimer();
   timer.phase = 'work';
   resetRemainingForPhase('work');
   resetFocusSession(null);
   exitFocusMode();
   renderTimer();
+}
+
+function resetTimer() {
+  synchronizeRuntimeAfterStateReplacement();
 }
 
 function renderTimer() {
@@ -728,6 +744,60 @@ handleForm('[data-form="urgent"]', () => {
 handleForm('[data-form="focus-urgent"]', () => {
   commit(addTodoLines('urgent', refs.focusUrgentInput.value));
   refs.focusUrgentInput.value = '';
+});
+
+function setDataMessage(message, isError = false) {
+  refs.dataMessage.textContent = message;
+  refs.dataMessage.classList.toggle('error', isError);
+}
+
+function downloadJson(filename, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+refs.exportData.addEventListener('click', () => {
+  try {
+    const date = new Date().toISOString().slice(0, 10);
+    downloadJson(`pomodoro-backup-${date}.json`, serializeStateExport(state));
+    setDataMessage('数据备份已导出。');
+  } catch (error) {
+    setDataMessage(`导出失败：${error.message}`, true);
+  }
+});
+
+refs.importData.addEventListener('click', () => refs.importFile.click());
+
+refs.importFile.addEventListener('change', async () => {
+  const [file] = refs.importFile.files;
+  refs.importFile.value = '';
+  if (!file) return;
+  try {
+    if (file.size > MAX_IMPORT_BYTES) throw new Error('文件超过 5 MB。');
+    const nextState = parseStateImport(await file.text());
+    if (!window.confirm('导入将替换当前数据，是否继续？')) return;
+    const importSnapshot = structuredClone(state);
+    commit(nextState);
+    synchronizeRuntimeAfterStateReplacement();
+    preImportState = importSnapshot;
+    refs.undoImport.hidden = false;
+    setDataMessage('数据导入成功。');
+  } catch (error) {
+    setDataMessage(`导入失败：${error.message}`, true);
+  }
+});
+
+refs.undoImport.addEventListener('click', () => {
+  if (!preImportState) return;
+  commit(preImportState);
+  synchronizeRuntimeAfterStateReplacement();
+  preImportState = null;
+  refs.undoImport.hidden = true;
+  setDataMessage('已恢复导入前的数据。');
 });
 
 refs.workMinutes.addEventListener('change', () => {

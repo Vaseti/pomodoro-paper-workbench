@@ -12,3 +12,6 @@ Thumbs.db
 *.tmp
 *.zip
 .github-package/
+
+__pycache__/
+*.py[cod]

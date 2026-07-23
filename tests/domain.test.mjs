@@ -16,6 +16,7 @@ import {
   deleteMarker,
   getRecentDailyRecords,
   moveActivityToToday,
+  normalizeState,
   rollToDate,
   selectTask,
   toggleMarker,
@@ -36,6 +37,19 @@ test('creates a usable default state', () => {
   assert.deepEqual(state.logs, []);
   assert.equal(state.selectedTaskId, null);
 });
+
+for (const value of [0, 181, 1e308]) {
+  test(`falls back to default timer settings for out-of-range value ${value}`, () => {
+    const state = normalizeState({
+      settings: { workMinutes: value, breakMinutes: value },
+    }, '2026-07-23');
+
+    assert.equal(state.settings.workMinutes, 25);
+    assert.equal(state.settings.breakMinutes, 5);
+    assert.equal(Number.isFinite(state.settings.workMinutes), true);
+    assert.equal(Number.isFinite(state.settings.breakMinutes), true);
+  });
+}
 
 test('rolls today into a daily record and clears the board on the next date', () => {
   let state = createInitialState('2026-06-23');

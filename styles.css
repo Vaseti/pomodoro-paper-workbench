@@ -1069,6 +1069,32 @@ h3 {
   text-align: center;
 }
 
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.data-actions button {
+  min-height: 34px;
+  padding: 7px 11px;
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.data-message {
+  flex-basis: 100%;
+  min-height: 1.3em;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.data-message.error {
+  color: var(--urgent);
+}
+
 @media (max-width: 1080px) {
   .app-shell {
     grid-template-columns: 1fr;
